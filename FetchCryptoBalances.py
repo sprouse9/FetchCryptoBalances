@@ -33,13 +33,36 @@ def main():
 
 
 
+    for network in config["test_networks"]:
 
-
-    for network in config["networks"]:
-        #print(f"\n--- {network['name']} ---")
-        #print(f"{network['name']:<42} {'Coin':<8} {'Token':<10} {'Balance':>12}")
-        print(f"{network['name']:<42} {'Token':<10} {'Balance':>12}")
+        print(f"{network['native_coin']:<42} {'Token':<10} {'Balance':>12}")
         print("=" * 70)
+
+        # build the URL for GET request
+        addresses_string = ','.join(config['addresses'])
+        url = f"{network['api_url']}{addresses_string}&apikey={network['api_key']}"
+        print(url)
+
+        # Fetch BSC balances
+        response = requests.get(url, headers=headers)
+        data = response.json()
+
+        '''
+        data looks like this:
+        # {'status': '1', 'message': 'OK', 'result': 
+        # [
+        # {'account': '0x3aBcD1eF4A5b6C7D8e9F0aBc1D234567890abcde', 'balance': '0'}, 
+        # {'account': '0x7aBcD9fE2a8B4C3D1eF0A5cB6d7E9F01234aBcDe', 'balance': '26586077308444'},
+            ...
+          ]
+        '''
+
+        print("\n", data)
+
+
+        #f"https://api.bscscan.com/api?module=account&action=balancemulti&address={mm_addresses}&apikey={bsc_apikey}"
+
+
 
     mm_addresses = config["addresses"]
 
