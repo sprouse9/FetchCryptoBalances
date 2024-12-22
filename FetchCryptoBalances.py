@@ -8,6 +8,7 @@ import os
 import requests
 import json
 import pandas as pd
+import time
 
 # Headers for the request
 headers = {
@@ -39,14 +40,15 @@ def main():
     # Initialize an empty list to store the balances
     balances = []
 
-    for network in config["test_networks"]:
-
+    for network in config["networks"]:
+        balances.clear()
+        
         #print(f"{network['native_coin']:<42} {'Token':<10} {'Balance':>12}")
         #print("=" * 70)
 
         # build the URL for GET request
         addresses_string = ','.join(config['addresses'])
-        url = f"{network['api_url']}{addresses_string}&apikey={network['api_key']}"
+        url = f"{network['api_url']}&action=balancemulti&address={addresses_string}&apikey={network['api_key']}"
         #print(url)
 
         # Fetch BSC balances
@@ -71,8 +73,64 @@ def main():
 
         # Add the "tokens" if any
         for token in network['tokens']:
-            print(token['name'])
-            # a new URL must be created with the token address and list of addresses to fetch from the API
+            balances = []
+            print(f"Fetching {network['native_coin']} :: {token['name']}...", end='\r')
+            for address in config['addresses']:
+                # a new URL must be created with the token address and the addresses to fetch from the API
+                # we cannot use balancemulti as we did the native token
+                url = (f"{network['api_url']}"
+                f"&action=tokenbalance"
+                f"&contractaddress={address}"
+                f"&address={token['contract_address']}"
+                f"&tag=latest"
+                f"&apikey={network['api_key']}")
+                
+                #print(url)
+                
+                '''
+                Example Get BEP-20 Token Account Balance by ContractAddress:
+                https://api.bscscan.com/api
+                &action=tokenbalance
+                &contractaddress=0xe9e7cea3dedca5984780bafc599bd69add087d56
+                &address=0x89e73303049ee32919903c09e8de5629b84f59eb
+                &tag=latest
+                &apikey=YourApiKeyToken
+                '''
+
+                # perform GET request
+                response = requests.get(url, headers=headers)
+                data = response.json()
+
+                '''
+                Sample Response:
+                {
+                    "status":"1",
+                    "message":"OK",
+                    "result":"1420514928941209"
+                }
+                '''
+                balances.append(float(data['result'])/1e18)
+                # print(balances)
+                # copy to the dataframe as a new column
+                time.sleep( (1/5) )
+
+            df[token['name']] = balances
+
+
+
+
+
+            #print("\n")
+
+
+
+
+
+
+
+
+
+
 
         
         '''
