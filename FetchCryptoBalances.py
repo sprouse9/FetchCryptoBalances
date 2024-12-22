@@ -7,7 +7,7 @@ Location on iCloud drive for security:
 import os
 import requests
 import json
-
+import pandas as pd
 
 # Headers for the request
 headers = {
@@ -31,17 +31,23 @@ def main():
     
     config = load_config(config_path)
 
+    # df = pd.DataFrame([None] + config['addresses'], columns=['Addresses'])
+    # Assuming config['addresses'] is the list of full wallet addresses
+    df = pd.DataFrame([f"0x{account[-4:]}" for account in config['addresses']], columns=['Addresses'])
+    df.index = range(1, len(df) + 1)
 
+    # Initialize an empty list to store the balances
+    balances = []
 
     for network in config["test_networks"]:
 
-        print(f"{network['native_coin']:<42} {'Token':<10} {'Balance':>12}")
-        print("=" * 70)
+        #print(f"{network['native_coin']:<42} {'Token':<10} {'Balance':>12}")
+        #print("=" * 70)
 
         # build the URL for GET request
         addresses_string = ','.join(config['addresses'])
         url = f"{network['api_url']}{addresses_string}&apikey={network['api_key']}"
-        print(url)
+        #print(url)
 
         # Fetch BSC balances
         response = requests.get(url, headers=headers)
@@ -49,26 +55,40 @@ def main():
 
         '''
         data looks like this:
-        # {'status': '1', 'message': 'OK', 'result': 
+        # {'status': '1', 'message': 'OK', 'result':
         # [
         # {'account': '0x3aBcD1eF4A5b6C7D8e9F0aBc1D234567890abcde', 'balance': '0'}, 
         # {'account': '0x7aBcD9fE2a8B4C3D1eF0A5cB6d7E9F01234aBcDe', 'balance': '26586077308444'},
             ...
           ]
         '''
+        # Now we take the balances from the JSON provided from the request
+        for account in data['result']:
+            balances.append(float(account['balance'])/1e18)
 
-        print("\n", data)
+        # copy to the dataframe as a new column
+        df[network['native_coin']] = balances
 
+        # Add the "tokens" if any
+        for token in network['tokens']:
+            print(token['name'])
+            # a new URL must be created with the token address and list of addresses to fetch from the API
 
-        #f"https://api.bscscan.com/api?module=account&action=balancemulti&address={mm_addresses}&apikey={bsc_apikey}"
+        
+        '''
+        # Check if 'result' key exists
+        if 'result' in data:
+            print("Result data:")
+            print(json.dumps(data['result'], indent=4))  # Pretty print the result
+        else:
+             print("Error: 'result' key not found.")
+        '''
 
+    print(df)
 
+    
 
-    mm_addresses = config["addresses"]
-
-    print("\n", type(mm_addresses))
-
-
+        #print(json.dumps(data, indent=4))
 
 # Execute the main function
 if __name__ == "__main__":
